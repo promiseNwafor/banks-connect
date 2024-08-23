@@ -1,0 +1,16 @@
+.next/*
+public/*
+cypress/*
+node_modules/*
+README.md
+Dockerfile
+Jenkinsfile
+*.yml
+*.txt
+*.md
+*.png
+*.svg
+*.jpg
+*.ico
+*.gif
+*.lock
