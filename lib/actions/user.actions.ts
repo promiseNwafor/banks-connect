@@ -14,6 +14,7 @@ import {
 import { revalidatePath } from 'next/cache'
 import { addFundingSource, createDwollaCustomer } from './dwolla.actions'
 import { createAdminClient, createSessionClient } from '../appwrite'
+import { plaidClient } from '../plaid'
 
 const {
   APPWRITE_DATABASE_ID: DATABASE_ID,
@@ -121,5 +122,36 @@ export async function getLoggedInUser() {
   } catch (error) {
     console.log(error)
     return null
+  }
+}
+
+export const createBankAccount = async ({
+  userId,
+  bankId,
+  accountId,
+  accessToken,
+  fundingSourceUrl,
+  sharableId,
+}: createBankAccountProps) => {
+  try {
+    const { database } = await createAdminClient()
+
+    const bankAccount = await database.createDocument(
+      DATABASE_ID!,
+      BANK_COLLECTION_ID!,
+      ID.unique(),
+      {
+        userId,
+        bankId,
+        accountId,
+        accessToken,
+        fundingSourceUrl,
+        sharableId,
+      }
+    )
+
+    return parseStringify(bankAccount)
+  } catch (error) {
+    console.log(error)
   }
 }
