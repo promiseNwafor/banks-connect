@@ -2,7 +2,13 @@
 
 import { ID, Query } from 'node-appwrite'
 import { cookies } from 'next/headers'
-import { encryptId, extractCustomerIdFromUrl, parseStringify } from '../utils'
+import {
+  encryptId,
+  extractCustomerIdFromUrl,
+  formatSSN,
+  parseStringify,
+  validateStateAbbreviation,
+} from '../utils'
 import {
   CountryCode,
   ProcessorTokenCreateRequest,
@@ -57,7 +63,7 @@ export const signIn = async ({ email, password }: signInProps) => {
 }
 
 export const signUp = async ({ password, ...userData }: SignUpParams) => {
-  const { email, firstName, lastName } = userData
+  const { email, firstName, lastName, state, ssn } = userData
 
   let newUserAccount
 
@@ -67,6 +73,16 @@ export const signUp = async ({ password, ...userData }: SignUpParams) => {
     newUserAccount = await account.create(ID.unique(), email, password, `${firstName} ${lastName}`)
 
     if (!newUserAccount) throw new Error('Error creating user')
+
+    const validatedState = validateStateAbbreviation(state)
+    if (!validatedState) {
+      throw new Error('Invalid state abbreviation')
+    }
+
+    const formattedSSN = formatSSN(ssn)
+    if (!formattedSSN) {
+      throw new Error('Invalid SSN format')
+    }
 
     const dwollaCustomerUrl = await createDwollaCustomer({
       ...userData,
@@ -151,6 +167,50 @@ export const createBankAccount = async ({
     )
 
     return parseStringify(bankAccount)
+  } catch (error) {
+    console.log(error)
+  }
+}
+
+export const getBanks = async ({ userId }: getBanksProps) => {
+  try {
+    const { database } = await createAdminClient()
+
+    const banks = await database.listDocuments(DATABASE_ID!, BANK_COLLECTION_ID!, [
+      Query.equal('userId', [userId]),
+    ])
+
+    return parseStringify(banks.documents)
+  } catch (error) {
+    console.log(error)
+  }
+}
+
+export const getBank = async ({ documentId }: getBankProps) => {
+  try {
+    const { database } = await createAdminClient()
+
+    const bank = await database.listDocuments(DATABASE_ID!, BANK_COLLECTION_ID!, [
+      Query.equal('$id', [documentId]),
+    ])
+
+    return parseStringify(bank.documents[0])
+  } catch (error) {
+    console.log(error)
+  }
+}
+
+export const getBankByAccountId = async ({ accountId }: getBankByAccountIdProps) => {
+  try {
+    const { database } = await createAdminClient()
+
+    const bank = await database.listDocuments(DATABASE_ID!, BANK_COLLECTION_ID!, [
+      Query.equal('accountId', [accountId]),
+    ])
+
+    if (bank.total !== 1) return null
+
+    return parseStringify(bank.documents[0])
   } catch (error) {
     console.log(error)
   }
